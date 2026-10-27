@@ -82,6 +82,25 @@ def test_leaflet_unhide(screen: Screen):
     assert len(requested_tiles) == 8
 
 
+def test_leaflet_keeps_tile_width_after_visibility_toggle(screen: Screen):
+    @app.get('/mock_tile/{z}/{x}/{y}')
+    def mock_tile(z: str, x: str, y: str) -> Response:
+        return Response(base64.b64decode('R0lGODlhAQABAIAAAP///wAAACwAAAAAAQABAAACAkQBADs='))
+
+    @ui.page('/')
+    def page():
+        m = ui.leaflet().classes('w-96 h-64')
+        m.wms_layer(url_template='/mock_tile/{{z}}/{{x}}/{{y}}')
+        ui.button('Hide map', on_click=lambda: m.set_visibility(False))
+        ui.button('Show map', on_click=lambda: m.set_visibility(True))
+
+    screen.open('/')
+    screen.wait(0.5)
+    screen.click('Hide map')
+    screen.click('Show map')
+    screen.wait_for_js('document.querySelector(".leaflet-tile").getBoundingClientRect().width', 256)
+
+
 async def test_leaflet_is_collected_after_client_deletion(user: User):
     held = []  # stands in for a timer or handler holding the map
     objects: weakref.WeakSet = weakref.WeakSet()
